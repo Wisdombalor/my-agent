@@ -6,83 +6,6 @@
 // ==========================================================================
 // CONSTANTS & INITIAL SAMPLE DATA
 // ==========================================================================
-const STORAGE_KEY = 'myagent_properties_v1';
-const THEME_STORAGE_KEY = 'myagent_theme';
-
-const SAMPLE_PROPERTIES = [
-  {
-    id: 'prop_lekki_duplex_01',
-    title: 'Luxurious 4-Bedroom Contemporary Duplex',
-    type: 'Duplex',
-    listingType: 'For Sale',
-    bedrooms: '4',
-    bathrooms: 4,
-    location: 'Lekki Phase 1, Lagos',
-    price: 185000000,
-    description: 'Exquisite architectural masterpiece featuring a stamped concrete compound, fully fitted Italian kitchen with marble countertops, private cinema room, automated gate system, smart home lighting, and 24/7 armed estate security in a serene Lekki neighborhood.',
-    image: 'assets/images/duplex.jpg',
-    availability: 'Available',
-    createdAt: Date.now() - 86400000 * 3
-  },
-  {
-    id: 'prop_vi_apartment_02',
-    title: 'Waterfront 3-Bedroom Penthouse Apartment',
-    type: 'Apartment',
-    listingType: 'For Rent',
-    bedrooms: '3',
-    bathrooms: 3,
-    location: 'Victoria Island, Lagos',
-    price: 28000000,
-    description: 'Spectacular panoramic waterfront vistas overlooking Lagos Lagoon. Features floor-to-ceiling soundproof glass, open-concept German chef kitchen, infinity swimming pool access, full-time gym, central air-conditioning, and 100% round-the-clock uninterrupted power supply.',
-    image: 'assets/images/apartment.jpg',
-    availability: 'Available',
-    createdAt: Date.now() - 86400000 * 5
-  },
-  {
-    id: 'prop_abuja_detached_03',
-    title: 'Palatial 5-Bedroom Detached Mansion with Pool',
-    type: 'Detached House',
-    listingType: 'For Sale',
-    bedrooms: '5',
-    bathrooms: 6,
-    location: 'Maitama, Abuja',
-    price: 650000000,
-    description: 'Ultra-luxury ambassadorial mansion nestled in prime Maitama diplomatic zone. Boasts Olympic-length private swimming pool, Spanish marble finishing throughout, 2-room BQ, bulletproof external doors, manicured gardens, private elevator lift, and massive solar power backup system.',
-    image: 'assets/images/detached.jpg',
-    availability: 'Available',
-    createdAt: Date.now() - 86400000 * 1
-  },
-  {
-    id: 'prop_ikeja_bungalow_04',
-    title: 'Serene 3-Bedroom Executive Garden Bungalow',
-    type: 'Bungalow',
-    listingType: 'For Rent',
-    bedrooms: '3',
-    bathrooms: 3,
-    location: 'Ikeja GRA, Lagos',
-    price: 14000000,
-    description: 'Charming contemporary bungalow situated on a quiet tree-lined avenue in secure Ikeja GRA. Features landscaped front yard, covered 3-car port, industrial borehole water treatment system, ensuite rooms, walk-in closets, and peaceful residential ambience close to the airport.',
-    image: 'assets/images/bungalow.jpg',
-    availability: 'Available',
-    createdAt: Date.now() - 86400000 * 7
-  },
-  {
-    id: 'prop_ikoyi_terrace_05',
-    title: 'Modern 4-Bedroom Smart Terrace Townhouse',
-    type: 'Other',
-    listingType: 'For Sale',
-    bedrooms: '4',
-    bathrooms: 4,
-    location: 'Ikoyi, Lagos',
-    price: 320000000,
-    description: 'Contemporary triplex terrace in an exclusive gated close in Old Ikoyi. Fitted with private rooftop lounge, smart home integration, integrated audio ceiling speakers, CCTV surveillance, 3-car parking, and dedicated domestic service quarters.',
-    image: 'assets/images/terrace.jpg',
-    availability: 'Unavailable',
-    createdAt: Date.now() - 86400000 * 10
-  }
-];
-
-// ==========================================================================
 // APP STATE
 // ==========================================================================
 let properties = [];
@@ -171,6 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPropertiesFromStorage();
   setupEventListeners();
   renderApp();
+  const requestedListing = new URLSearchParams(location.search).get('listing');
+  if (requestedListing) {
+    if (properties.some(p => p.id === requestedListing)) openDetailsModal(requestedListing);
+    else showToast('This listing is no longer available.', 'info');
+  }
 });
 
 /**
@@ -206,7 +134,7 @@ function loadPropertiesFromStorage() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         properties = parsed;
         return;
       }
@@ -255,6 +183,13 @@ function setupEventListeners() {
   btnClosePropertyModal.addEventListener('click', closePropertyModal);
   btnCancelForm.addEventListener('click', closePropertyModal);
   btnCloseDetailsModal.addEventListener('click', closeDetailsModal);
+  detailsModal.addEventListener('close', () => {
+    const url = new URL(location.href);
+    if (url.searchParams.has('listing')) {
+      url.searchParams.delete('listing');
+      history.replaceState(null, '', url);
+    }
+  });
   btnCancelDelete.addEventListener('click', closeDeleteModal);
   btnConfirmDelete.addEventListener('click', handleConfirmDelete);
 
@@ -623,7 +558,6 @@ function renderPropertyCards(items) {
   items.forEach(prop => {
     const card = document.createElement('article');
     card.className = 'property-card';
-    card.setAttribute('tabindex', '0');
     card.setAttribute('aria-label', `${prop.title}, ${prop.location}`);
     card.dataset.id = prop.id;
 
@@ -635,9 +569,9 @@ function renderPropertyCards(items) {
 
     card.innerHTML = `
       <div class="card-media">
-        <img 
-          src="${escapeHtml(prop.image || 'assets/images/duplex.jpg')}" 
-          alt="${escapeHtml(prop.title)}" 
+        <img
+          src="${escapeHtml(prop.image || 'assets/images/duplex.jpg')}"
+          alt="${escapeHtml(prop.title)}"
           class="card-image"
           loading="lazy"
           onerror="this.onerror=null; this.src='assets/images/duplex.jpg';"
@@ -695,19 +629,19 @@ function renderPropertyCards(items) {
         </div>
 
         <div class="card-footer">
-          <span class="card-btn-view">
-            <span>View Details</span>
+          <button type="button" class="card-btn-view" aria-label="View ${escapeHtml(prop.title)}">
+            <span>View details</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
-          </span>
+          </button>
 
           <div class="card-admin-actions">
-            <button 
-              type="button" 
-              class="btn-card-action btn-card-edit" 
-              data-id="${prop.id}" 
-              title="Edit Property" 
+            <button
+              type="button"
+              class="btn-card-action btn-card-edit"
+              data-id="${escapeHtml(prop.id)}"
+              title="Edit Property"
               aria-label="Edit ${escapeHtml(prop.title)}"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -715,11 +649,11 @@ function renderPropertyCards(items) {
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </button>
-            <button 
-              type="button" 
-              class="btn-card-action btn-card-delete" 
-              data-id="${prop.id}" 
-              title="Delete Property" 
+            <button
+              type="button"
+              class="btn-card-action btn-card-delete"
+              data-id="${escapeHtml(prop.id)}"
+              title="Delete Property"
               aria-label="Delete ${escapeHtml(prop.title)}"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -737,12 +671,6 @@ function renderPropertyCards(items) {
     // Click on entire card opens details
     card.addEventListener('click', () => {
       openDetailsModal(prop.id);
-    });
-
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        openDetailsModal(prop.id);
-      }
     });
 
     // Edit button click
@@ -779,9 +707,9 @@ function openDetailsModal(id) {
 
   detailsContentContainer.innerHTML = `
     <div class="details-hero">
-      <img 
-        src="${escapeHtml(prop.image || 'assets/images/duplex.jpg')}" 
-        alt="${escapeHtml(prop.title)}" 
+      <img
+        src="${escapeHtml(prop.image || 'assets/images/duplex.jpg')}"
+        alt="${escapeHtml(prop.title)}"
         class="details-hero-img"
         onerror="this.onerror=null; this.src='assets/images/duplex.jpg';"
       >
@@ -1147,12 +1075,29 @@ function handleConfirmDelete() {
 
   const deletedIndex = properties.findIndex(p => p.id === propertyToDeleteId);
   if (deletedIndex !== -1) {
-    const deletedTitle = properties[deletedIndex].title;
+    const deletedProperty = properties[deletedIndex];
     properties.splice(deletedIndex, 1);
-    savePropertiesToStorage();
+    if (!savePropertiesToStorage()) {
+      properties.splice(deletedIndex, 0, deletedProperty);
+      return;
+    }
     closeDeleteModal();
     renderApp();
-    showToast(`"${deletedTitle}" deleted successfully.`, 'info');
+    btnOpenAddModal.focus();
+    showToast('Listing deleted', 'success', {
+      detail: deletedProperty.title,
+      duration: 8000,
+      action: 'Undo',
+      onAction: () => {
+        properties.splice(Math.min(deletedIndex, properties.length), 0, deletedProperty);
+        if (!savePropertiesToStorage()) {
+          properties = properties.filter(p => p.id !== deletedProperty.id);
+          return;
+        }
+        renderApp();
+        showToast('Listing restored', 'success');
+      }
+    });
   }
 }
 
@@ -1190,26 +1135,68 @@ function escapeHtml(str) {
 /**
  * Shows a toast message with automatic slide-out
  */
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', options = {}) {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-
-  let iconSvg = '';
-  if (type === 'success') {
-    iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-  } else if (type === 'error') {
-    iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
-  } else {
-    iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+  const icon = document.createElement('span');
+  icon.className = 'toast-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = type === 'success' ? '✓' : type === 'error' ? '!' : 'i';
+  const content = document.createElement('div');
+  content.className = 'toast-copy';
+  const title = document.createElement('p');
+  title.className = 'toast-title';
+  title.textContent = message;
+  content.appendChild(title);
+  if (options.detail) {
+    const detail = document.createElement('p');
+    detail.className = 'toast-detail';
+    detail.textContent = options.detail;
+    content.appendChild(detail);
   }
-
-  toast.innerHTML = `${iconSvg}<span>${escapeHtml(message)}</span>`;
-  toastContainer.appendChild(toast);
-
-  setTimeout(() => {
+  toast.append(icon, content);
+  let timer;
+  let removed = false;
+  const dismiss = () => {
+    if (removed) return;
+    removed = true;
+    clearTimeout(timer);
+    if (toast.contains(document.activeElement)) btnOpenAddModal.focus();
     toast.classList.add('toast-hiding');
-    setTimeout(() => {
-      if (toast.parentNode) toast.parentNode.removeChild(toast);
-    }, 280);
-  }, 3200);
+    setTimeout(() => toast.remove(), 240);
+    document.removeEventListener('visibilitychange', onVisibility);
+  };
+  const resume = () => {
+    clearTimeout(timer);
+    if (!removed && !document.hidden && !toast.matches(':hover') && !toast.contains(document.activeElement)) {
+      timer = setTimeout(dismiss, options.duration || 5000);
+    }
+  };
+  const onVisibility = () => document.hidden ? clearTimeout(timer) : resume();
+  if (options.action) {
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'toast-action';
+    action.textContent = options.action;
+    action.addEventListener('click', () => { dismiss(); options.onAction(); });
+    toast.appendChild(action);
+  }
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'toast-dismiss';
+  close.setAttribute('aria-label', 'Dismiss notification');
+  close.textContent = '×';
+  close.addEventListener('click', dismiss);
+  toast.appendChild(close);
+  toast.addEventListener('pointerenter', () => clearTimeout(timer));
+  toast.addEventListener('pointerleave', resume);
+  toast.addEventListener('focusin', () => clearTimeout(timer));
+  toast.addEventListener('focusout', () => setTimeout(resume, 0));
+  document.addEventListener('visibilitychange', onVisibility);
+  toastContainer.appendChild(toast);
+  resume();
 }
+
+// Keyboard interactions stay immediate; pointer-opened dialogs retain their entrance.
+document.addEventListener('keydown', () => { document.documentElement.dataset.input = 'keyboard'; }, true);
+document.addEventListener('pointerdown', () => { document.documentElement.dataset.input = 'pointer'; }, true);

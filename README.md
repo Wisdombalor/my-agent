@@ -72,3 +72,11 @@ No dependencies, build tools, or packages to install!
 
 **Wisdom Balor**
 - GitHub: [@Wisdombalor](https://github.com/Wisdombalor)
+
+## Landing page and workspace
+
+The home page (`index.html`) introduces My Agent with an animated property-photo mosaic. Use **Explore properties** or **Open workspace** to enter `workspace.html`. The workspace brand links back home.
+
+`landing.css` and `landing.js` handle the responsive introduction and photo rotation. Each photo opens its matching listing. Photos hold still while hovered or keyboard-focused; reduced-motion preferences start with static photos. The workspace retains the existing browser-storage listing management.
+
+See `DESIGN_DECISIONS.md`, `DESIGN_REVIEW.md`, and `DESIGN_SKILL_COVERAGE.md` for scope and verification evidence.
